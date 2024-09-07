@@ -86,19 +86,19 @@ def load_track2():
         # bpm_label2.config(text=f"BPM: {int(bpm)}")
 
 # Function to handle the crossfade transition
-def trans():
+def trans(mode):
     global is_transitioning
     if track1 and track2:
         is_transitioning = True
         
         # Run the crossfade in a separate thread
-        t1 = threading.Thread(target=crossfade_tracks)
+        t1 = threading.Thread(target=lambda: crossfade_trans(mode))
         t1.start()
         
 # Function to perform the crossfade
-def crossfade_tracks():
+def crossfade_trans(mode):
     global is_transitioning, is_playing1, is_playing2
-    fade_duration = 7.0  # Crossfade duration in seconds
+    fade_duration = mode  # Crossfade duration in seconds
     fade_steps = 100      # Number of steps in the fade
     step_duration = fade_duration / fade_steps
 
@@ -120,11 +120,11 @@ def crossfade_tracks():
             time.sleep(step_duration)
 
         # After crossfade, stop channel1 and let channel2 continue
-        channel1.pause()
         channel1.set_volume(0)
         channel2.set_volume(1)
-        button1_pp.config(text="Play")
-        is_playing1 = False
+        # channel1.pause()
+        # button1_pp.config(text="Play")
+        # is_playing1 = False
 
     elif channel2.get_volume() == 1.0:
         print("2->1")
@@ -146,9 +146,9 @@ def crossfade_tracks():
         # After crossfade, stop channel1 and let channel2 continue
         channel1.set_volume(1)
         channel2.set_volume(0)
-        channel2.pause()
-        button2_pp.config(text="Play")
-        is_playing2 = False
+        # channel2.pause()
+        # button2_pp.config(text="Play")
+        # is_playing2 = False
     
     is_transitioning = False
     print("done!")
@@ -317,8 +317,11 @@ volume3.grid(row=3, column=2, padx=5, pady=5)
 
 # Stop All Tracks
 ttk.Button(frame3, text="Stop All Tracks", command=stop_all_tracks).grid(row=4, column=2, padx=10, pady=10)
-ttk.Button(frame3, text="Start second Track and transition", command=trans).grid(row=5, column=2, padx=10, pady=10)
+# ttk.Button(frame3, text="Start second Track and transition", command=lambda: trans(2.0)).grid(row=5, column=2, padx=10, pady=10)
 
+ttk.Button(frame3, text="Small", command=lambda: trans(5.0)).grid(row=5, column=1, padx=5, pady=5)
+ttk.Button(frame3, text="Mid", command=lambda: trans(8.0)).grid(row=5, column=2, padx=5, pady=5)
+ttk.Button(frame3, text="Long", command=lambda: trans(12.0)).grid(row=5, column=3, padx=5, pady=5)
 
 # Handle window close event
 root.protocol("WM_DELETE_WINDOW", on_closing)
