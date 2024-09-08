@@ -12,6 +12,7 @@ import gc
 import numpy as np
 from tkinter import *
 from csv_conv import *
+#from help_functions import *
 # from display_csv import *
 
 # Initialize Pygame mixer
@@ -28,7 +29,6 @@ is_playing1, is_playing2, started1, started2 = False, False, False, False
 vol1, vol2, crossfade_position = 1.0, 1.0, 1.0
 added_song = ''
 added_song_name = ''
-    
     
 
 def find_bpm(file_path):
@@ -51,11 +51,8 @@ def load_track1():
     if file_path:
         if channel1:
             channel1.stop()
-        # is_playing1 = True
-        # button1_pp.config(text="Pause")
-        # Load and play the new track
+
         track1 = pygame.mixer.Sound(file_path)
-        # channel1.play(track1)
         started1 = False
         volume3.set(volume3.get())
         
@@ -63,31 +60,62 @@ def load_track1():
         file_name1 = file_name1.replace('.mp3', '')
         frame1_name.config(text=file_name1)
 
-        # Find and display BPM
-        # bpm = find_bpm(file_path)
-        # bpm_label1.config(text=f"BPM: {int(bpm)}")
+        selected_item = tree.selection()
+        bpm_ar1 = tree.item(selected_item, 'values')
+        # Assuming the file name is in the first column
+        bpm1 = bpm_ar1[2]  # Adjust the index if file name is in another column
+        bpm_label1.config(text=f"Bpm: {bpm1}")
 
 def added1():
-    global track1, channel1, started1
+    global track1, channel1, started1, is_playing1
         
-    channel1.stop()
     track1 = pygame.mixer.Sound("New folder/" + added_song)
-    
-    started1 = False
+
+    if channel1 and is_playing1:
+        channel1.stop()
+        
+        channel1.play(track1)
+        button1_pp.config(text="Pause")
+        started1 = True
+    else:
+        started1 = False
+        is_playing1 = False
+        button1_pp.config(text="Play")
+
     volume3.set(volume3.get())
     frame1_name.config(text=added_song_name)
 
+
+    selected_item = tree.selection()
+    bpm_ar1 = tree.item(selected_item, 'values')
+    # Assuming the file name is in the first column
+    bpm1 = bpm_ar1[2]  # Adjust the index if file name is in another column
+    bpm_label1.config(text=f"Bpm: {bpm1}")
+
 def added2():
-    global track2, channel2, started2
-        
-    channel2.stop()
+    global track2, channel2, started2, is_playing2
+            
     track2 = pygame.mixer.Sound("New folder/" + added_song)
-    
-    started2 = False
+
+    if channel2 and is_playing2:
+        channel2.stop()
+        
+        channel2.play(track2)
+        button2_pp.config(text="Pause")
+        started2 = True
+    else:
+        started2 = False
+        is_playing2 = False
+        button2_pp.config(text="Play")
+
     volume3.set(volume3.get())
     frame2_name.config(text=added_song_name)
 
-
+    
+    selected_item = tree.selection()
+    bpm_ar2 = tree.item(selected_item, 'values')
+    bpm2 = bpm_ar2[2]  # Adjust the index if file name is in another column
+    bpm_label2.config(text=f"Bpm: {bpm2}")
 
 def load_track2():
     global track2, channel2, started2, is_playing2
@@ -95,21 +123,14 @@ def load_track2():
     if file_path:
         if channel2:
             channel2.stop()
-        # is_playing2 = True
-        # button2_pp.config(text="Pause")
-        # Load and play the new track
+
         track2 = pygame.mixer.Sound(file_path)
-        # channel2.play(track2)
         started2 = False
         volume3.set(volume3.get())
         
         file_name2 = Path(file_path).name
         file_name2 = file_name2.replace('.mp3', '')
         frame2_name.config(text=file_name2)
-        
-        # Find and display BPM
-        # bpm = find_bpm(file_path)
-        # bpm_label2.config(text=f"BPM: {int(bpm)}")
 
 # Function to handle the crossfade transition
 def trans(mode):
@@ -144,13 +165,12 @@ def crossfade_trans(mode):
 
             # Wait before updating again
             time.sleep(step_duration)
+            volume3.set(100-i)
 
         # After crossfade, stop channel1 and let channel2 continue
         channel1.set_volume(0)
         channel2.set_volume(1)
-        # channel1.pause()
-        # button1_pp.config(text="Play")
-        # is_playing1 = False
+        volume3.set(0)
 
     elif channel2.get_volume() == 1.0:
         print("2->1")
@@ -168,13 +188,12 @@ def crossfade_trans(mode):
 
             # Wait before updating again
             time.sleep(step_duration)
+            volume3.set(i)
 
         # After crossfade, stop channel1 and let channel2 continue
         channel1.set_volume(1)
         channel2.set_volume(0)
-        # channel2.pause()
-        # button2_pp.config(text="Play")
-        # is_playing2 = False
+        volume3.set(100)
     
     is_transitioning = False
     print("done!")
@@ -272,12 +291,13 @@ def set_crossfade(val):
         
         volume_label1.config(text=f"Volume: {int(volume1 * 100)}%")
         volume_label2.config(text=f"Volume: {int(volume2 * 100)}%")
-
-
 # Function to load and display CSV in Treeview
-def load_csv():
+def load_csv(mode=0):
     # Ask the user to select a CSV file
-    file_path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
+    if mode == 0:
+        file_path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
+    elif mode == 1:
+        file_path = "C:/Users/manol/Desktop/New folder/c1.csv"
     
     if not file_path:
         return
@@ -296,8 +316,12 @@ def load_csv():
 
         # Define columns and headings
         for header in headers:
-            tree.heading(header, text=header)
-            tree.column(header, width=10)
+            if header == 'File Name':
+                tree.heading(header, text=header)
+                tree.column(header, width=400)
+            else:
+                tree.heading(header, text=header)
+                tree.column(header, width=100)
 
         # Add rows to the Treeview
         for row in reader:
@@ -317,13 +341,9 @@ def on_double_click(event):
         added_song_name = file_name
         print(f"File Name: {file_name}")
 
-
-
-
-
 # Track 1 Controls
 frame1 = ttk.LabelFrame(root, text="Track 1 Controls")
-frame1.grid(row=0, column=0, padx=10, pady=10)
+frame1.grid(row=0, column=0, padx=10, pady=10, sticky="news")
 
 frame1_name = ttk.Label(frame1, text='')
 frame1_name.grid(row=0, column=0, padx=10, pady=10)
@@ -347,7 +367,7 @@ volume_label1.grid(row=3, column=1, padx=10, pady=10)
 
 # Track 2 Controls
 frame2 = ttk.LabelFrame(root, text="Track 2 Controls")
-frame2.grid(row=0, column=2, padx=10, pady=10)
+frame2.grid(row=0, column=2, padx=10, pady=10, sticky="news")
 
 frame2_name = ttk.Label(frame2, text='')
 frame2_name.grid(row=0, column=0, padx=10, pady=10)
@@ -371,17 +391,11 @@ volume_label2.grid(row=3, column=1, padx=10, pady=10)
 
 # Mixer
 frame3 = ttk.LabelFrame(root, text="Mixer", labelanchor="n")
-frame3.grid(row=0, column=1, padx=10, pady=10)
+frame3.grid(row=0, column=1, padx=10, pady=10, sticky="news")
 
 volume1 = ttk.Scale(frame3, from_=100, to=0, orient='vertical', command=volume1_cr)
 volume1.set(100)  # Set initial volume to 100%
 volume1.grid(row=2, column=0, padx=5, pady=5)
-
-volume_meter1 = ttk.Progressbar(frame3, orient='vertical', mode='determinate')
-volume_meter1.grid(row=2, column=1, padx=5, pady=5)
-
-volume_meter2 = ttk.Progressbar(frame3, orient='vertical', mode='determinate')
-volume_meter2.grid(row=2, column=3, padx=5, pady=5)
 
 volume2 = ttk.Scale(frame3, from_=100, to=0, orient='vertical', command=volume2_cr)
 volume2.set(100)  # Set initial volume to 100%
@@ -395,8 +409,6 @@ volume3.grid(row=3, column=2, padx=5, pady=5)
 
 # Stop All Tracks
 ttk.Button(frame3, text="Stop All Tracks", command=stop_all_tracks).grid(row=4, column=2, padx=10, pady=10)
-# ttk.Button(frame3, text="Start second Track and transition", command=lambda: trans(2.0)).grid(row=5, column=2, padx=10, pady=10)
-
 ttk.Button(frame3, text="Small", command=lambda: trans(5.0)).grid(row=5, column=1, padx=5, pady=5)
 ttk.Button(frame3, text="Mid", command=lambda: trans(8.0)).grid(row=5, column=2, padx=5, pady=5)
 ttk.Button(frame3, text="Long", command=lambda: trans(12.0)).grid(row=5, column=3, padx=5, pady=5)
@@ -411,22 +423,15 @@ frame4.grid(row=1, column=0, columnspan=3, padx=10, pady=10)
 # Create the Treeview widget
 tree = ttk.Treeview(frame4, show="headings")
 tree.grid(row=1, column=0)
+load_csv(1)
 
-# # Add a scrollbar
-# scrollbar = ttk.Scrollbar(root, orient="vertical", command=tree.yview)
-# tree.configure(yscroll=scrollbar.set)
-# scrollbar.grid(row=1, column=1, sticky="ns")
-
-
-
-# # Configure grid weights to allow resizing
-# root.grid_rowconfigure(0, weight=1)
-# root.grid_columnconfigure(0, weight=1)
-# frame4.grid_rowconfigure(0, weight=1)
-# frame4.grid_columnconfigure(0, weight=1)
+# Add a scrollbar
+scrollbar = ttk.Scrollbar(frame4, orient="vertical", command=tree.yview)
+tree.configure(yscroll=scrollbar.set)
+scrollbar.grid(row=1, column=3, sticky="ns")
 
 # Bind the double-click event to the Treeview
-tree.bind("<Double-1>", on_double_click)
+tree.bind("<Button-1>", on_double_click)
 
 # Handle window close event
 root.protocol("WM_DELETE_WINDOW", on_closing)
