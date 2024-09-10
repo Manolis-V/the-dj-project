@@ -26,7 +26,7 @@ channel2 = pygame.mixer.Channel(1)
 
 is_transitioning = False
 is_playing1, is_playing2, started1, started2 = False, False, False, False
-vol1, vol2, crossfade_position = 1.0, 1.0, 1.0
+vol1, vol2, crossfade_position, start_time1 = 1.0, 1.0, 1.0, 0.0
 added_song = ''
 added_song_name = ''
     
@@ -66,6 +66,24 @@ def load_track1():
         bpm1 = bpm_ar1[2]  # Adjust the index if file name is in another column
         bpm_label1.config(text=f"Bpm: {bpm1}")
 
+def update_time1():
+    global channel1, track1, is_playing1, start_time1
+    print(1)
+    if channel1 and is_playing1:
+        selected_item = tree.selection()
+        bpm_ar1 = tree.item(selected_item, 'values')
+        duration1 = bpm_ar1[1]
+        print(2)                        # i have to make it work on cue and play pause
+        curr_time = time.time() - start_time1
+        curr_time = round(curr_time, 2)
+        dur1.config(text=f"{curr_time}/{duration1}")
+    if not is_playing1:
+        print(3)
+        return
+    if channel1.get_busy():
+        root.after(250, update_time1)  # Update slider every 500 ms
+
+
 def added1():
     global track1, channel1, started1, is_playing1
         
@@ -91,6 +109,10 @@ def added1():
     # Assuming the file name is in the first column
     bpm1 = bpm_ar1[2]  # Adjust the index if file name is in another column
     bpm_label1.config(text=f"Bpm: {bpm1}")
+    duration1 = bpm_ar1[1]
+    dur1.config(text=f"-/{duration1}")
+
+    
 
 def added2():
     global track2, channel2, started2, is_playing2
@@ -115,7 +137,9 @@ def added2():
     selected_item = tree.selection()
     bpm_ar2 = tree.item(selected_item, 'values')
     bpm2 = bpm_ar2[2]  # Adjust the index if file name is in another column
+    duration2 = bpm_ar2[1]
     bpm_label2.config(text=f"Bpm: {bpm2}")
+    dur2.config(text=f"-/{duration2}")
 
 def load_track2():
     global track2, channel2, started2, is_playing2
@@ -141,7 +165,16 @@ def trans(mode):
         # Run the crossfade in a separate thread
         t1 = threading.Thread(target=lambda: crossfade_trans(mode))
         t1.start()
-        
+
+def update_dur1(duration1):
+    while 1 :
+        if is_playing1:
+            current_pos = channel1.get_pos() / 1000
+            print(current_pos)
+            print(3)
+            dur1.config(text=f"{current_pos}/{duration1}")
+        time.sleep(1)
+
 # Function to perform the crossfade
 def crossfade_trans(mode):
     global is_transitioning, is_playing1, is_playing2
@@ -199,20 +232,31 @@ def crossfade_trans(mode):
     print("done!")
 
 def pause_resume1():
-    global is_playing1, started1
+    global is_playing1, started1, start_time1
     if is_playing1:
         channel1.pause()
         button1_pp.config(text="Play")
         is_playing1 = False
+        print(13)
+
     elif is_playing1 == False and started1 == False:
         channel1.play(track1)
         button1_pp.config(text="Pause")
         is_playing1 = True
         started1 = True
+        print(12)
+        start_time1 = time.time()
+        t2 = threading.Thread(target=update_time1)
+        t2.start()
     elif is_playing1 == False:
         channel1.unpause()
         button1_pp.config(text="Pause")
         is_playing1 = True
+        
+        print(11)
+        start_time1 = time.time()
+        t2 = threading.Thread(target=lambda: update_time1)
+        t2.start()
     
 def cue1():
     global is_playing1, channel1
@@ -363,6 +407,8 @@ bpm_label1 = ttk.Label(frame1, text="BPM: Unknown")
 bpm_label1.grid(row=3, column=0, padx=10, pady=10)
 volume_label1 = ttk.Label(frame1, text="Volume: 100%")
 volume_label1.grid(row=3, column=1, padx=10, pady=10)
+dur1 = ttk.Label(frame1, text="-/-")
+dur1.grid(row=3, column=2, padx=10, pady=10)
 
 
 # Track 2 Controls
@@ -387,6 +433,8 @@ bpm_label2 = ttk.Label(frame2, text="BPM: Unknown")
 bpm_label2.grid(row=3, column=0, padx=10, pady=10)
 volume_label2 = ttk.Label(frame2, text="Volume: 0%")
 volume_label2.grid(row=3, column=1, padx=10, pady=10)
+dur2 = ttk.Label(frame2, text="-/-")
+dur2.grid(row=3, column=2, padx=10, pady=10)
 
 
 # Mixer
