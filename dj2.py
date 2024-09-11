@@ -26,7 +26,7 @@ channel2 = pygame.mixer.Channel(1)
 
 is_transitioning = False
 is_playing1, is_playing2, started1, started2 = False, False, False, False
-vol1, vol2, crossfade_position, start_time1 = 1.0, 1.0, 1.0, 0.0
+vol1, vol2, crossfade_position, start_time1, pause_time1, start_time2, pause_time2 = 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0
 added_song = ''
 added_song_name = ''
     
@@ -66,26 +66,11 @@ def load_track1():
         bpm1 = bpm_ar1[2]  # Adjust the index if file name is in another column
         bpm_label1.config(text=f"Bpm: {bpm1}")
 
-def update_time1():
-    global channel1, track1, is_playing1, start_time1
-    print(1)
-    if channel1 and is_playing1:
-        selected_item = tree.selection()
-        bpm_ar1 = tree.item(selected_item, 'values')
-        duration1 = bpm_ar1[1]
-        print(2)                        # i have to make it work on cue and play pause
-        curr_time = time.time() - start_time1
-        curr_time = round(curr_time, 2)
-        dur1.config(text=f"{curr_time}/{duration1}")
-    if not is_playing1:
-        print(3)
-        return
-    if channel1.get_busy():
-        root.after(250, update_time1)  # Update slider every 500 ms
+
 
 
 def added1():
-    global track1, channel1, started1, is_playing1
+    global track1, channel1, started1, is_playing1, start_time1, pause_time1
         
     track1 = pygame.mixer.Sound("New folder/" + added_song)
 
@@ -95,11 +80,14 @@ def added1():
         channel1.play(track1)
         button1_pp.config(text="Pause")
         started1 = True
+
     else:
         started1 = False
         is_playing1 = False
         button1_pp.config(text="Play")
 
+    pause_time1 = 0.0
+    start_time1 = time.time()
     volume3.set(volume3.get())
     frame1_name.config(text=added_song_name)
 
@@ -115,7 +103,7 @@ def added1():
     
 
 def added2():
-    global track2, channel2, started2, is_playing2
+    global track2, channel2, started2, is_playing2, pause_time2, start_time2
             
     track2 = pygame.mixer.Sound("New folder/" + added_song)
 
@@ -130,6 +118,8 @@ def added2():
         is_playing2 = False
         button2_pp.config(text="Play")
 
+    pause_time2 = 0.0
+    start_time2 = time.time()
     volume3.set(volume3.get())
     frame2_name.config(text=added_song_name)
 
@@ -159,6 +149,7 @@ def load_track2():
 # Function to handle the crossfade transition
 def trans(mode):
     global is_transitioning
+    print("trans")
     if track1 and track2:
         is_transitioning = True
         
@@ -177,7 +168,7 @@ def update_dur1(duration1):
 
 # Function to perform the crossfade
 def crossfade_trans(mode):
-    global is_transitioning, is_playing1, is_playing2
+    global is_transitioning, is_playing1, is_playing2, done
     fade_duration = mode  # Crossfade duration in seconds
     fade_steps = 100      # Number of steps in the fade
     step_duration = fade_duration / fade_steps
@@ -228,8 +219,64 @@ def crossfade_trans(mode):
         channel2.set_volume(0)
         volume3.set(100)
     
+    done = False
     is_transitioning = False
     print("done!")
+
+#| problem with .play(0.1)  1 == finished???
+def move_forward1():
+    global start_time1, channel1
+    print(1)
+    new_time = time.time() - start_time1
+    print("new_time, ", new_time)
+    channel1.stop()
+    print("stop")               
+    channel1 = track1.play(0, int(new_time))  # Restart from the new spot
+    print("started at ", int(new_time))
+
+
+done = False
+def update_time1():
+    global channel1, track1, is_playing1, start_time1, pause_time1, done
+    curr_time = time.time() - start_time1
+    if channel1 and is_playing1:
+        selected_item = tree.selection()
+        bpm_ar1 = tree.item(selected_item, 'values')
+        duration1 = bpm_ar1[1]
+        
+        curr_time = round(curr_time, 3)
+        
+        dur1.config(text=f"{curr_time}/{duration1}")
+
+        if curr_time >= 15.0 and curr_time <= 15.3 and not done:
+            print("trans 1->2")
+            done = TRUE
+            trans(15.0)
+
+    if not is_playing1:
+        pause_time1 = curr_time
+        print(pause_time1)
+        return
+    if channel1.get_busy():
+        root.after(250, update_time1)  # Update slider every 500 ms
+
+def update_time2():
+    global channel2, track2, is_playing2, start_time2, pause_time2
+    curr_time = time.time() - start_time2
+    if channel2 and is_playing2:
+        selected_item = tree.selection()
+        bpm_ar2 = tree.item(selected_item, 'values')
+        duration2 = bpm_ar2[1]
+        
+        curr_time = round(curr_time, 3)
+        
+        dur2.config(text=f"{curr_time}/{duration2}")
+    if not is_playing2:
+        pause_time2 = curr_time
+        print(pause_time2)
+        return
+    if channel2.get_busy():
+        root.after(250, update_time2)  # Update slider every 500 ms
 
 def pause_resume1():
     global is_playing1, started1, start_time1
@@ -237,58 +284,97 @@ def pause_resume1():
         channel1.pause()
         button1_pp.config(text="Play")
         is_playing1 = False
+        
+        t2 = threading.Thread(target=update_time1)
+        t2.start()
         print(13)
 
+    # when it was on cue or just loaded
     elif is_playing1 == False and started1 == False:
         channel1.play(track1)
         button1_pp.config(text="Pause")
         is_playing1 = True
         started1 = True
-        print(12)
-        start_time1 = time.time()
+        print(2)
+        start_time1 = time.time() - pause_time1
         t2 = threading.Thread(target=update_time1)
         t2.start()
+        
+        volume3.set(volume3.get())
+
     elif is_playing1 == False:
         channel1.unpause()
         button1_pp.config(text="Pause")
         is_playing1 = True
-        
-        print(11)
-        start_time1 = time.time()
-        t2 = threading.Thread(target=lambda: update_time1)
+        print(1)
+        start_time1 = time.time() - pause_time1
+        t2 = threading.Thread(target=update_time1)
         t2.start()
-    
-def cue1():
-    global is_playing1, channel1
-    channel1.stop()
-    channel1 = track1.play(0, 0)  # Restart from the beginning
-    channel1.pause()  # Immediately pause it
-    is_playing1 = False
-    button1_pp.config(text="Play")
 
 def pause_resume2():
-    global is_playing2, started2
+    global is_playing2, started2, start_time2
     if is_playing2:
         channel2.pause()
         button2_pp.config(text="Play")
         is_playing2 = False
+
+        t3 = threading.Thread(target=update_time2)
+        t3.start()
+
+    # when it was on cue or just loaded
     elif is_playing2 == False and started2 == False:
         channel2.play(track2)
         button2_pp.config(text="Pause")
         is_playing2 = True
         started2 = True
+        
+        start_time2 = time.time() - pause_time2
+        t3 = threading.Thread(target=update_time2)
+        t3.start()
+
+        volume3.set(volume3.get())
     elif is_playing2 == False:
         channel2.unpause()
         button2_pp.config(text="Pause")
         is_playing2 = True
 
+        start_time2 = time.time() - pause_time2
+        t3 = threading.Thread(target=update_time2)
+        t3.start()
+
+def cue1():
+    global is_playing1, channel1, pause_time1, start_time1, started1
+    channel1.stop()
+    channel1 = track1.play(0, 0)  # Restart from the beginning
+    channel1.pause()  # Immediately pause it
+
+    is_playing1 = False
+    button1_pp.config(text="Play")
+    started1 = False
+
+    pause_time1 = 0.0
+    start_time1 = time.time()
+    selected_item = tree.selection()
+    bpm_ar1 = tree.item(selected_item, 'values')
+    duration1 = bpm_ar1[1]
+    dur1.config(text=f"0.0/{duration1}")
+
 def cue2():
-    global is_playing2, channel2
+    global is_playing2, channel2, pause_time2, start_time2, started2
     channel2.stop()
     channel2 = track2.play(0, 0)  # Restart from the beginning
     channel2.pause()  # Immediately pause it
+
     is_playing2 = False
     button2_pp.config(text="Play")
+    started2 = False
+
+    pause_time2 = 0.0
+    start_time2 = time.time()
+    selected_item = tree.selection()
+    bpm_ar2 = tree.item(selected_item, 'values')
+    duration2 = bpm_ar2[1]
+    dur2.config(text=f"0.0/{duration2}")
 
 def stop_all_tracks():
     global is_playing1, is_playing2
@@ -409,6 +495,8 @@ volume_label1 = ttk.Label(frame1, text="Volume: 100%")
 volume_label1.grid(row=3, column=1, padx=10, pady=10)
 dur1 = ttk.Label(frame1, text="-/-")
 dur1.grid(row=3, column=2, padx=10, pady=10)
+move_forward_btn1 = ttk.Button(frame1, text="+15s", command=move_forward1)
+move_forward_btn1.grid(row=4, column=2, padx=10, pady=10)
 
 
 # Track 2 Controls
