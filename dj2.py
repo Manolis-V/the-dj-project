@@ -26,7 +26,7 @@ channel2 = pygame.mixer.Channel(1)
 
 is_transitioning = False
 is_playing1, is_playing2, started1, started2 = False, False, False, False
-vol1, vol2, crossfade_position, start_time1, pause_time1, start_time2, pause_time2 = 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0
+vol1, vol2, crossfade_position, start_time1, pause_time1, start_time2, pause_time2, duration1, duration2 = 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0, 0
 added_song = ''
 added_song_name = ''
     
@@ -70,7 +70,7 @@ def load_track1():
 
 
 def added1():
-    global track1, channel1, started1, is_playing1, start_time1, pause_time1
+    global track1, channel1, started1, is_playing1, start_time1, pause_time1, duration1
         
     track1 = pygame.mixer.Sound("New folder/" + added_song)
 
@@ -103,7 +103,7 @@ def added1():
     
 
 def added2():
-    global track2, channel2, started2, is_playing2, pause_time2, start_time2
+    global track2, channel2, started2, is_playing2, pause_time2, start_time2, duration2
             
     track2 = pygame.mixer.Sound("New folder/" + added_song)
 
@@ -237,12 +237,12 @@ def move_forward1():
 
 done = False
 def update_time1():
-    global channel1, track1, is_playing1, start_time1, pause_time1, done
+    global channel1, track1, is_playing1, start_time1, pause_time1, done, duration1
     curr_time = time.time() - start_time1
     if channel1 and is_playing1:
         selected_item = tree.selection()
         bpm_ar1 = tree.item(selected_item, 'values')
-        duration1 = bpm_ar1[1]
+        #duration1 = bpm_ar1[1]
         
         curr_time = round(curr_time, 3)
         
@@ -261,12 +261,12 @@ def update_time1():
         root.after(250, update_time1)  # Update slider every 500 ms
 
 def update_time2():
-    global channel2, track2, is_playing2, start_time2, pause_time2
+    global channel2, track2, is_playing2, start_time2, pause_time2, duration2
     curr_time = time.time() - start_time2
     if channel2 and is_playing2:
         selected_item = tree.selection()
         bpm_ar2 = tree.item(selected_item, 'values')
-        duration2 = bpm_ar2[1]
+        #duration2 = bpm_ar2[1]
         
         curr_time = round(curr_time, 3)
         
