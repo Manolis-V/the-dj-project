@@ -100,8 +100,6 @@ def added1():
     duration1 = bpm_ar1[1]
     dur1.config(text=f"-/{duration1}")
 
-    
-
 def added2():
     global track2, channel2, started2, is_playing2, pause_time2, start_time2, duration2
             
@@ -240,18 +238,16 @@ def update_time1():
     global channel1, track1, is_playing1, start_time1, pause_time1, done, duration1
     curr_time = time.time() - start_time1
     if channel1 and is_playing1:
-        selected_item = tree.selection()
-        bpm_ar1 = tree.item(selected_item, 'values')
-        #duration1 = bpm_ar1[1]
         
         curr_time = round(curr_time, 3)
         
         dur1.config(text=f"{curr_time}/{duration1}")
 
-        if curr_time >= 15.0 and curr_time <= 15.3 and not done:
+        if curr_time >= (int(duration1)/12) and curr_time <= (int(duration1)/12) + 0.3 and not done:
             print("trans 1->2")
             done = TRUE
-            trans(15.0)
+            pause_resume2()
+            trans(int(duration1)/24)
 
     if not is_playing1:
         pause_time1 = curr_time
@@ -261,16 +257,21 @@ def update_time1():
         root.after(250, update_time1)  # Update slider every 500 ms
 
 def update_time2():
-    global channel2, track2, is_playing2, start_time2, pause_time2, duration2
+    global channel2, track2, is_playing2, start_time2, pause_time2, done, duration2
     curr_time = time.time() - start_time2
     if channel2 and is_playing2:
-        selected_item = tree.selection()
-        bpm_ar2 = tree.item(selected_item, 'values')
-        #duration2 = bpm_ar2[1]
         
         curr_time = round(curr_time, 3)
         
         dur2.config(text=f"{curr_time}/{duration2}")
+
+
+        if curr_time >= (int(duration2)/12) and curr_time <= (int(duration2)/12) + 0.3 and not done:
+            print("trans 2->1")
+            done = TRUE
+            pause_resume1()
+            trans(int(duration1)/24)
+
     if not is_playing2:
         pause_time2 = curr_time
         print(pause_time2)
@@ -498,6 +499,8 @@ dur1.grid(row=3, column=2, padx=10, pady=10)
 move_forward_btn1 = ttk.Button(frame1, text="+15s", command=move_forward1)
 move_forward_btn1.grid(row=4, column=2, padx=10, pady=10)
 
+progress_bar1 = ttk.Scale(frame1, from_=0, to=100, orient="horizontal", length=300, style="TScale")
+progress_bar1.grid(row=5, column=0, columnspan=3, padx=10, pady=10)
 
 # Track 2 Controls
 frame2 = ttk.LabelFrame(root, text="Track 2 Controls")
@@ -523,6 +526,9 @@ volume_label2 = ttk.Label(frame2, text="Volume: 0%")
 volume_label2.grid(row=3, column=1, padx=10, pady=10)
 dur2 = ttk.Label(frame2, text="-/-")
 dur2.grid(row=3, column=2, padx=10, pady=10)
+
+progress_bar2 = ttk.Scale(frame2, from_=0, to=100, orient="horizontal", length=300, style="TScale")
+progress_bar2.grid(row=5, column=0, columnspan=3, padx=10, pady=10)
 
 
 # Mixer
