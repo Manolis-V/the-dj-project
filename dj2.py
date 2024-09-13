@@ -11,6 +11,7 @@ import threading
 import gc
 import numpy as np
 from tkinter import *
+# from autoplay import *
 from csv_conv import *
 #from help_functions import *
 # from display_csv import *
@@ -25,8 +26,8 @@ channel1 = pygame.mixer.Channel(0)
 channel2 = pygame.mixer.Channel(1)
 
 is_transitioning = False
-is_playing1, is_playing2, started1, started2 = False, False, False, False
-vol1, vol2, crossfade_position, start_time1, pause_time1, start_time2, pause_time2, duration1, duration2 = 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0, 0
+is_playing1, is_playing2, started1, started2, auto, done, full_auto = False, False, False, False, False, False, False
+vol1, vol2, crossfade_position, start_time1, pause_time1, start_time2, pause_time2, duration1, duration2, song_id = 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0, 0, 1
 added_song = ''
 added_song_name = ''
     
@@ -107,7 +108,6 @@ def added2():
 
     if channel2 and is_playing2:
         channel2.stop()
-        
         channel2.play(track2)
         button2_pp.config(text="Pause")
         started2 = True
@@ -121,7 +121,6 @@ def added2():
     volume3.set(volume3.get())
     frame2_name.config(text=added_song_name)
 
-    
     selected_item = tree.selection()
     bpm_ar2 = tree.item(selected_item, 'values')
     bpm2 = bpm_ar2[2]  # Adjust the index if file name is in another column
@@ -155,14 +154,6 @@ def trans(mode):
         t1 = threading.Thread(target=lambda: crossfade_trans(mode))
         t1.start()
 
-def update_dur1(duration1):
-    while 1 :
-        if is_playing1:
-            current_pos = channel1.get_pos() / 1000
-            print(current_pos)
-            print(3)
-            dur1.config(text=f"{current_pos}/{duration1}")
-        time.sleep(1)
 
 # Function to perform the crossfade
 def crossfade_trans(mode):
@@ -188,11 +179,15 @@ def crossfade_trans(mode):
             # Wait before updating again
             time.sleep(step_duration)
             volume3.set(100-i)
+            
+            
 
         # After crossfade, stop channel1 and let channel2 continue
         channel1.set_volume(0)
         channel2.set_volume(1)
         volume3.set(0)
+        if auto == True:
+            pause_resume1()
 
     elif channel2.get_volume() == 1.0:
         print("2->1")
@@ -212,14 +207,20 @@ def crossfade_trans(mode):
             time.sleep(step_duration)
             volume3.set(i)
 
+            
+
         # After crossfade, stop channel1 and let channel2 continue
         channel1.set_volume(1)
         channel2.set_volume(0)
         volume3.set(100)
+        if auto == True:
+            pause_resume2()
     
     done = False
     is_transitioning = False
     print("done!")
+    if full_auto == True:
+        auto_play()
 
 #| problem with .play(0.1)  1 == finished???
 def move_forward1():
@@ -233,7 +234,6 @@ def move_forward1():
     print("started at ", int(new_time))
 
 
-done = False
 def update_time1():
     global channel1, track1, is_playing1, start_time1, pause_time1, done, duration1
     curr_time = time.time() - start_time1
@@ -243,11 +243,13 @@ def update_time1():
         
         dur1.config(text=f"{curr_time}/{duration1}")
 
-        if curr_time >= (int(duration1)/12) and curr_time <= (int(duration1)/12) + 0.3 and not done:
-            print("trans 1->2")
-            done = TRUE
-            pause_resume2()
-            trans(int(duration1)/24)
+        if auto == True:
+            if curr_time >= (int(duration1)/12) and curr_time <= (int(duration1)/12) + 0.3 and not done:
+                print("trans 1->2")
+                done = TRUE
+                # if not auto:
+                pause_resume2()
+                trans(int(duration1)/24)
 
     if not is_playing1:
         pause_time1 = curr_time
@@ -265,12 +267,13 @@ def update_time2():
         
         dur2.config(text=f"{curr_time}/{duration2}")
 
-
-        if curr_time >= (int(duration2)/12) and curr_time <= (int(duration2)/12) + 0.3 and not done:
-            print("trans 2->1")
-            done = TRUE
-            pause_resume1()
-            trans(int(duration1)/24)
+        if auto == True:
+            if curr_time >= (int(duration2)/12) and curr_time <= (int(duration2)/12) + 0.3 and not done:
+                print("trans 2->1")
+                done = TRUE
+                # if not auto:
+                pause_resume1()
+                trans(int(duration1)/24)
 
     if not is_playing2:
         pause_time2 = curr_time
@@ -278,6 +281,7 @@ def update_time2():
         return
     if channel2.get_busy():
         root.after(250, update_time2)  # Update slider every 500 ms
+
 
 def pause_resume1():
     global is_playing1, started1, start_time1
@@ -428,7 +432,7 @@ def load_csv(mode=0):
     if mode == 0:
         file_path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
     elif mode == 1:
-        file_path = "C:/Users/manol/Desktop/New folder/c1.csv"
+        file_path = "C:/Users/manol/Desktop/New folder/csv.csv"
     
     if not file_path:
         return
@@ -450,6 +454,9 @@ def load_csv(mode=0):
             if header == 'File Name':
                 tree.heading(header, text=header)
                 tree.column(header, width=400)
+            elif header == 'id':
+                tree.heading(header, text=header)
+                tree.column(header, width=10)
             else:
                 tree.heading(header, text=header)
                 tree.column(header, width=100)
@@ -471,6 +478,100 @@ def on_double_click(event):
         added_song = file_name
         added_song_name = file_name
         print(f"File Name: {file_name}")
+
+
+
+def auto_added1(item_data):
+    global track1, channel1, started1, is_playing1, start_time1, pause_time1, duration1
+        
+    track1 = pygame.mixer.Sound("New folder/" + added_song)
+
+    if channel1 and is_playing1:
+        channel1.stop()
+    channel1.play(track1)
+    button1_pp.config(text="Pause")
+    started1 = True
+    is_playing1 = True
+    pause_time1 = 0.0
+    start_time1 = time.time()
+    volume3.set(volume3.get())
+    frame1_name.config(text=added_song_name)
+
+    bpm1 = item_data[2]  # Adjust the index if file name is in another column
+    bpm_label1.config(text=f"Bpm: {bpm1}")
+    duration1 = item_data[1]
+    dur1.config(text=f"-/{duration1}")
+
+    start_time1 = time.time() - pause_time1
+    t2 = threading.Thread(target=update_time1)
+    t2.start()
+
+def auto_added2(item_data):
+    global track2, channel2, started2, is_playing2, start_time2, pause_time2, duration2
+        
+    track2 = pygame.mixer.Sound("New folder/" + added_song)
+
+    if channel2 and is_playing2:
+        channel2.stop()
+    channel2.play(track2)
+    button2_pp.config(text="Pause")
+    started2 = True
+    is_playing2 = True
+    pause_time2 = 0.0
+    start_time2 = time.time()
+    volume3.set(volume3.get())
+    frame2_name.config(text=added_song_name)
+
+    bpm2 = item_data[2]  # Adjust the index if file name is in another column
+    bpm_label2.config(text=f"Bpm: {bpm2}")
+    duration2 = item_data[1]
+    dur2.config(text=f"-/{duration2}")
+
+    start_time2 = time.time() - pause_time2
+    t2 = threading.Thread(target=update_time2)
+    t2.start()
+
+def auto_play():
+    global started1, started2, song_id, added_song, added_song_name, full_auto
+    deck = 1
+    full_auto = True
+    print("autoplay")
+    if deck == 1:
+        print("deck ", deck)
+        for child in tree.get_children():
+            if tree.item(child)["values"][5] == song_id:
+                item_data = tree.item(child)["values"]
+                added_song = item_data[0]
+                added_song_name = added_song
+                
+                deck = 2
+                auto_added1(item_data)
+                print(f"File Name: {added_song}")
+    elif deck == 2:
+        print("deck ", deck)
+        for child in tree.get_children():
+            if tree.item(child)["values"] == song_id:
+                item_data = tree.item(child)["values"]
+                added_song = item_data[0]
+                added_song_name = added_song
+                
+                deck = 2
+                auto_added2(item_data)
+                print(f"File Name: {added_song}")
+    song_id = song_id + 1
+
+
+def automoto():
+    global auto
+    if auto:
+        auto = False
+        auto_bb.config(text="auto: off")
+    else:
+        auto = True
+        auto_bb.config(text="auto: on")
+    print(auto)
+
+
 
 # Track 1 Controls
 frame1 = ttk.LabelFrame(root, text="Track 1 Controls")
@@ -496,11 +597,11 @@ volume_label1 = ttk.Label(frame1, text="Volume: 100%")
 volume_label1.grid(row=3, column=1, padx=10, pady=10)
 dur1 = ttk.Label(frame1, text="-/-")
 dur1.grid(row=3, column=2, padx=10, pady=10)
-move_forward_btn1 = ttk.Button(frame1, text="+15s", command=move_forward1)
-move_forward_btn1.grid(row=4, column=2, padx=10, pady=10)
+# move_forward_btn1 = ttk.Button(frame1, text="+15s", command=move_forward1)
+# move_forward_btn1.grid(row=4, column=2, padx=10, pady=10)
 
 progress_bar1 = ttk.Scale(frame1, from_=0, to=100, orient="horizontal", length=300, style="TScale")
-progress_bar1.grid(row=5, column=0, columnspan=3, padx=10, pady=10)
+progress_bar1.grid(row=4, column=0, columnspan=3, padx=10, pady=10)
 
 # Track 2 Controls
 frame2 = ttk.LabelFrame(root, text="Track 2 Controls")
@@ -528,7 +629,7 @@ dur2 = ttk.Label(frame2, text="-/-")
 dur2.grid(row=3, column=2, padx=10, pady=10)
 
 progress_bar2 = ttk.Scale(frame2, from_=0, to=100, orient="horizontal", length=300, style="TScale")
-progress_bar2.grid(row=5, column=0, columnspan=3, padx=10, pady=10)
+progress_bar2.grid(row=4, column=0, columnspan=3, padx=10, pady=10)
 
 
 # Mixer
@@ -554,7 +655,9 @@ ttk.Button(frame3, text="Stop All Tracks", command=stop_all_tracks).grid(row=4, 
 ttk.Button(frame3, text="Small", command=lambda: trans(5.0)).grid(row=5, column=1, padx=5, pady=5)
 ttk.Button(frame3, text="Mid", command=lambda: trans(8.0)).grid(row=5, column=2, padx=5, pady=5)
 ttk.Button(frame3, text="Long", command=lambda: trans(12.0)).grid(row=5, column=3, padx=5, pady=5)
-ttk.Button(frame3, text="Save Playlist to CSV", command=save_as_csv).grid(row=6, column=1, padx=5, pady=5)
+ttk.Button(frame3, text="Save Playlist to CSV", command=save_as_csv).grid(row=6, column=2, padx=5, pady=5)
+auto_bb = ttk.Button(frame3, text="Auto", command=automoto)
+auto_bb.grid(row=6, column=1, padx=5, pady=5)
 
 # Button to load and display the CSV
 load_button = ttk.Button(frame3, text="Load CSV", command=load_csv)
@@ -566,7 +669,7 @@ frame4.grid(row=1, column=0, columnspan=3, padx=10, pady=10)
 tree = ttk.Treeview(frame4, show="headings")
 tree.grid(row=1, column=0)
 load_csv(1)
-
+# auto_play()
 # Add a scrollbar
 scrollbar = ttk.Scrollbar(frame4, orient="vertical", command=tree.yview)
 tree.configure(yscroll=scrollbar.set)
