@@ -92,7 +92,7 @@ def added1():
     pause_time1 = 0.0
     start_time1 = time.time()
     volume3.set(volume3.get())
-    frame1_name.config(text=added_song_name)
+    frame1_name.config(text=added_song)
 
 
     selected_item = tree.selection()
@@ -106,8 +106,9 @@ def added1():
 def added2():
     global track2, channel2, started2, is_playing2, pause_time2, start_time2, duration2
             
-    print(added_song)
+    print("music/"+ pool + "/" + added_song)
     track2 = pygame.mixer.Sound("music/"+ pool + "/" + added_song)
+    
     if channel2 and is_playing2:
         channel2.stop()
         channel2.play(track2)
@@ -121,7 +122,7 @@ def added2():
     pause_time2 = 0.0
     start_time2 = time.time()
     volume3.set(volume3.get())
-    frame2_name.config(text=added_song_name)
+    frame2_name.config(text=added_song)
 
     selected_item = tree.selection()
     bpm_ar2 = tree.item(selected_item, 'values')
@@ -156,6 +157,27 @@ def trans(mode):
         t1 = threading.Thread(target=lambda: crossfade_trans(mode))
         t1.start()
 
+def pick_song(deck):
+    global song_id, added_song
+    print("inside pick song")
+    if deck == 1:
+        print("deck ", deck)
+        for child in tree.get_children():
+            if tree.item(child)["values"][5] == song_id:
+                item_data = tree.item(child)["values"]
+                added_song = item_data[0]
+                print("adding song", song_id)
+                added1()
+    elif deck == 2:
+        print("deck ", deck)
+        for child in tree.get_children():
+            if tree.item(child)["values"][5] == song_id:
+                item_data = tree.item(child)["values"]
+                added_song = item_data[0]
+                print("adding song", song_id)
+                added2()
+    song_id = song_id + 1
+
 
 # Function to perform the crossfade
 def crossfade_trans(mode):
@@ -189,7 +211,8 @@ def crossfade_trans(mode):
         channel2.set_volume(1)
         volume3.set(0)
         if auto == True:
-            pause_resume1()
+            pause_resume1()     # pauses after trans
+            pick_song(1)
 
     elif channel2.get_volume() == 1.0:
         print("2->1")
@@ -216,7 +239,8 @@ def crossfade_trans(mode):
         channel2.set_volume(0)
         volume3.set(100)
         if auto == True:
-            pause_resume2()
+            pause_resume2()     # pauses after trans
+            pick_song(2)
     
     done = False
     is_transitioning = False
@@ -436,7 +460,6 @@ def load_dir(mode=0):
         load_csv(2)
     elif mode == 1:
         file_path = "C:/Users/manol/Desktop/the dj project/music/csvs/music.csv"
-
     if not file_path:
         return
     # Clear existing data in the Treeview
@@ -461,13 +484,13 @@ def load_dir(mode=0):
             tree1.insert("", tk.END, values=row)
 
 def load_csv(mode=0):
-    
+    global pool
     # Ask the user to select a CSV file
     if mode == 0:
         file_path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
     elif mode == 1:
         file_path = "C:/Users/manol/Desktop/the dj project/music/csvs/pool1.csv"
-        # file_path = ""
+        pool = "pool1"
     elif mode == 2:
         file_path = "C:/Users/manol/Desktop/the dj project/music/csvs/" + pool + ".csv"
         
@@ -733,7 +756,7 @@ load_csv(1)
 # Add a scrollbar
 scrollbar = ttk.Scrollbar(frame4, orient="vertical", command=tree.yview)
 tree.configure(yscroll=scrollbar.set)
-scrollbar.grid(row=0, column=2, sticky="ns")
+scrollbar.grid(row=0, column=2, sticky="nsew")
 
 # Bind the double-click event to the Treeview
 tree.bind('<Double-Button-1>', on_double_click)
