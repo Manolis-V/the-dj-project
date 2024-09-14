@@ -30,6 +30,8 @@ is_playing1, is_playing2, started1, started2, auto, done, full_auto = False, Fal
 vol1, vol2, crossfade_position, start_time1, pause_time1, start_time2, pause_time2, duration1, duration2, song_id = 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0, 0, 1
 added_song = ''
 added_song_name = ''
+directory_path = ''
+pool = ''
     
 
 def find_bpm(file_path):
@@ -72,8 +74,8 @@ def load_track1():
 
 def added1():
     global track1, channel1, started1, is_playing1, start_time1, pause_time1, duration1
-        
-    track1 = pygame.mixer.Sound("New folder/" + added_song)
+    
+    track1 = pygame.mixer.Sound("music/"+ pool + "/" + added_song)
 
     if channel1 and is_playing1:
         channel1.stop()
@@ -104,7 +106,7 @@ def added1():
 def added2():
     global track2, channel2, started2, is_playing2, pause_time2, start_time2, duration2
             
-    track2 = pygame.mixer.Sound("New folder/" + added_song)
+    track2 = pygame.mixer.Sound("music/"+ pool + "/" + added_song)
 
     if channel2 and is_playing2:
         channel2.stop()
@@ -427,13 +429,46 @@ def set_crossfade(val):
         volume_label1.config(text=f"Volume: {int(volume1 * 100)}%")
         volume_label2.config(text=f"Volume: {int(volume2 * 100)}%")
 # Function to load and display CSV in Treeview
+def load_dir(mode=0):
+
+    file_path = ''
+    if mode == 0:
+        load_csv(2)
+    elif mode == 1:
+        file_path = "C:/Users/manol/Desktop/the dj project/music/csvs/music.csv"
+
+    if not file_path:
+        return
+    # Clear existing data in the Treeview
+    for row in tree1.get_children():
+        tree1.delete(row)
+
+        # Open the CSV file and read it
+    with open(file_path, newline='', encoding='utf-8') as csvfile:
+        reader = csv.reader(csvfile)
+        headers = next(reader)  # Get the headers from the first row
+
+        # Clear existing columns in the Treeview
+        tree1["columns"] = headers
+
+        # Define columns and headings
+        for header in headers:
+            if header == 'path':
+                tree1.heading(header, text=header)
+                tree1.column(header, width=100)
+        # Add rows to the Treeview
+        for row in reader:
+            tree1.insert("", tk.END, values=row)
 def load_csv(mode=0):
     # Ask the user to select a CSV file
     if mode == 0:
         file_path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
     elif mode == 1:
-        file_path = "C:/Users/manol/Desktop/New folder/csv.csv"
-    
+        file_path = "C:/Users/manol/Desktop/the dj project/music/csvs/pool1.csv"
+        # file_path = ""
+    elif mode == 2:
+        file_path = "C:/Users/manol/Desktop/the dj project/music/csvs/" + pool + ".csv"
+
     if not file_path:
         return
 
@@ -452,12 +487,15 @@ def load_csv(mode=0):
         # Define columns and headings
         for header in headers:
             if header == 'File Name':
+                print(100)
                 tree.heading(header, text=header)
-                tree.column(header, width=400)
+                tree.column(header, width=300)
             elif header == 'id':
+                print(110)
                 tree.heading(header, text=header)
                 tree.column(header, width=10)
             else:
+                print(101)
                 tree.heading(header, text=header)
                 tree.column(header, width=100)
 
@@ -478,7 +516,19 @@ def on_double_click(event):
         added_song = file_name
         added_song_name = file_name
         print(f"File Name: {file_name}")
-
+# Function to handle double-click event and print file name
+def on_double_click2(event):
+    global pool
+    # Get the item selected by the user
+    selected_item = tree1.selection()
+    if selected_item:
+        # Get the values of the selected row
+        item_values = tree1.item(selected_item, 'values')
+        # Assuming the file name is in the first column
+        file_name = item_values[0]  # Adjust the index if file name is in another column
+        pool = file_name
+        print(f"File Name: {file_name}")
+        load_dir()
 
 
 def auto_added1(item_data):
@@ -663,11 +713,17 @@ auto_bb.grid(row=6, column=1, padx=5, pady=5)
 load_button = ttk.Button(frame3, text="Load CSV", command=load_csv)
 load_button.grid(row=6, column=3, pady=10)
 
-frame4 = ttk.LabelFrame(root, text="grid")
-frame4.grid(row=1, column=0, columnspan=3, padx=10, pady=10)
+frame4 = ttk.LabelFrame(root, text="pools")
+frame4.grid(row=1, column=1, columnspan=2, padx=10, pady=10)
+
+frame5 = ttk.LabelFrame(root, text="dirs")
+frame5.grid(row=1, column=0, padx=10, pady=10)
+tree1 = ttk.Treeview(frame5, show="headings")
+tree1.grid(row=0, column=0)
 # Create the Treeview widget
 tree = ttk.Treeview(frame4, show="headings")
 tree.grid(row=1, column=0)
+load_dir(1)
 load_csv(1)
 # auto_play()
 # Add a scrollbar
@@ -677,6 +733,8 @@ scrollbar.grid(row=1, column=3, sticky="ns")
 
 # Bind the double-click event to the Treeview
 tree.bind("<Button-1>", on_double_click)
+
+tree1.bind("<Button-1>", on_double_click2)
 
 # Handle window close event
 root.protocol("WM_DELETE_WINDOW", on_closing)
