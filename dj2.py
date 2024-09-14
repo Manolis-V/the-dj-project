@@ -106,8 +106,8 @@ def added1():
 def added2():
     global track2, channel2, started2, is_playing2, pause_time2, start_time2, duration2
             
+    print(added_song)
     track2 = pygame.mixer.Sound("music/"+ pool + "/" + added_song)
-
     if channel2 and is_playing2:
         channel2.stop()
         channel2.play(track2)
@@ -455,11 +455,13 @@ def load_dir(mode=0):
         for header in headers:
             if header == 'path':
                 tree1.heading(header, text=header)
-                tree1.column(header, width=100)
+                tree1.column(header, width=100, stretch=False)
         # Add rows to the Treeview
         for row in reader:
             tree1.insert("", tk.END, values=row)
+
 def load_csv(mode=0):
+    
     # Ask the user to select a CSV file
     if mode == 0:
         file_path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
@@ -468,7 +470,7 @@ def load_csv(mode=0):
         # file_path = ""
     elif mode == 2:
         file_path = "C:/Users/manol/Desktop/the dj project/music/csvs/" + pool + ".csv"
-
+        
     if not file_path:
         return
 
@@ -487,17 +489,17 @@ def load_csv(mode=0):
         # Define columns and headings
         for header in headers:
             if header == 'File Name':
-                print(100)
+                # print(100)
                 tree.heading(header, text=header)
-                tree.column(header, width=300)
+                tree.column(header, width=300, stretch=False)
             elif header == 'id':
-                print(110)
+                # print(110)
                 tree.heading(header, text=header)
-                tree.column(header, width=10)
+                tree.column(header, width=30, stretch=False)
             else:
-                print(101)
+                # print(101)
                 tree.heading(header, text=header)
-                tree.column(header, width=100)
+                tree.column(header, width=100, stretch=False)
 
         # Add rows to the Treeview
         for row in reader:
@@ -507,8 +509,10 @@ def load_csv(mode=0):
 def on_double_click(event):
     global added_song, added_song_name
     # Get the item selected by the user
+    print(1)
     selected_item = tree.selection()
     if selected_item:
+        print(2)
         # Get the values of the selected row
         item_values = tree.item(selected_item, 'values')
         # Assuming the file name is in the first column
@@ -615,10 +619,10 @@ def automoto():
     global auto
     if auto:
         auto = False
-        auto_bb.config(text="auto: off")
+        auto_bb.config(text="Auto: off")
     else:
         auto = True
-        auto_bb.config(text="auto: on")
+        auto_bb.config(text="Auto: on")
     print(auto)
 
 
@@ -706,7 +710,7 @@ ttk.Button(frame3, text="Small", command=lambda: trans(5.0)).grid(row=5, column=
 ttk.Button(frame3, text="Mid", command=lambda: trans(8.0)).grid(row=5, column=2, padx=5, pady=5)
 ttk.Button(frame3, text="Long", command=lambda: trans(12.0)).grid(row=5, column=3, padx=5, pady=5)
 ttk.Button(frame3, text="Save Playlist to CSV", command=save_as_csv).grid(row=6, column=2, padx=5, pady=5)
-auto_bb = ttk.Button(frame3, text="Auto", command=automoto)
+auto_bb = ttk.Button(frame3, text="Auto: off", command=automoto)
 auto_bb.grid(row=6, column=1, padx=5, pady=5)
 
 # Button to load and display the CSV
@@ -714,25 +718,25 @@ load_button = ttk.Button(frame3, text="Load CSV", command=load_csv)
 load_button.grid(row=6, column=3, pady=10)
 
 frame4 = ttk.LabelFrame(root, text="pools")
-frame4.grid(row=1, column=1, columnspan=2, padx=10, pady=10)
+frame4.grid(row=1, column=0, columnspan=3, padx=10, pady=10)
 
-frame5 = ttk.LabelFrame(root, text="dirs")
-frame5.grid(row=1, column=0, padx=10, pady=10)
-tree1 = ttk.Treeview(frame5, show="headings")
+# frame5 = ttk.LabelFrame(root, text="dirs")
+# frame5.grid(row=2, column=0, padx=10, pady=10)
+tree1 = ttk.Treeview(frame4, show="headings")
 tree1.grid(row=0, column=0)
 # Create the Treeview widget
 tree = ttk.Treeview(frame4, show="headings")
-tree.grid(row=1, column=0)
+tree.grid(row=0, column=1)
 load_dir(1)
 load_csv(1)
 # auto_play()
 # Add a scrollbar
 scrollbar = ttk.Scrollbar(frame4, orient="vertical", command=tree.yview)
 tree.configure(yscroll=scrollbar.set)
-scrollbar.grid(row=1, column=3, sticky="ns")
+scrollbar.grid(row=0, column=2, sticky="ns")
 
 # Bind the double-click event to the Treeview
-tree.bind("<Button-1>", on_double_click)
+tree.bind('<Double-Button-1>', on_double_click)
 
 tree1.bind("<Button-1>", on_double_click2)
 
