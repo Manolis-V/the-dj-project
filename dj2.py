@@ -26,6 +26,7 @@ channel1 = pygame.mixer.Channel(0)
 channel2 = pygame.mixer.Channel(1)
 
 is_transitioning = False
+songs_played = []
 is_playing1, is_playing2, started1, started2, auto, done, full_auto = False, False, False, False, False, False, False
 vol1, vol2, crossfade_position, start_time1, pause_time1, start_time2, pause_time2, duration1, duration2, song_id = 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0, 0, 1
 added_song = ''
@@ -157,9 +158,36 @@ def trans(mode):
         t1 = threading.Thread(target=lambda: crossfade_trans(mode))
         t1.start()
 
+def pick_id(bpm_of_the_curr):
+    global song_id, songs_played
+
+    for child in tree.get_children():
+        item_data = tree.item(child)["values"]
+        bpm_of_the_next = item_data[2]
+        song_id = item_data[5]
+        print("bpm_curr", bpm_of_the_curr)
+        print("bpm_next", bpm_of_the_next)
+        if bpm_of_the_next == bpm_of_the_curr and song_id not in songs_played:
+            songs_played.append(song_id)
+            print("picked id: ", song_id)
+            print(songs_played)
+            return
+        
+            
+
+
+# loads songs automaticaly after trans
 def pick_song(deck):
     global song_id, added_song
     print("inside pick song")
+
+    for child in tree.get_children():
+        if tree.item(child)["values"][0] == added_song:
+            item_data = tree.item(child)["values"]
+            break
+
+    pick_id(item_data[2])
+    print("id after pick_id:", song_id)
     if deck == 1:
         print("deck ", deck)
         for child in tree.get_children():
@@ -176,7 +204,7 @@ def pick_song(deck):
                 added_song = item_data[0]
                 print("adding song", song_id)
                 added2()
-    song_id = song_id + 1
+    
 
 
 # Function to perform the crossfade
