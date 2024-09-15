@@ -10,6 +10,8 @@ import time
 import threading
 import gc
 import numpy as np
+# from pydub import AudioSegment
+# from pydub.playback import play
 from tkinter import *
 # from autoplay import *
 from csv_conv import *
@@ -165,21 +167,17 @@ def pick_id(bpm_of_the_curr):
         item_data = tree.item(child)["values"]
         bpm_of_the_next = item_data[2]
         song_id = item_data[5]
-        print("bpm_curr", bpm_of_the_curr)
-        print("bpm_next", bpm_of_the_next)
-        if bpm_of_the_next == bpm_of_the_curr and song_id not in songs_played:
+        
+        # if bpm_of_the_next == bpm_of_the_curr and song_id not in songs_played:
+        if song_id not in songs_played:
             songs_played.append(song_id)
             print("picked id: ", song_id)
             print(songs_played)
             return
-        
-            
-
 
 # loads songs automaticaly after trans
 def pick_song(deck):
     global song_id, added_song
-    print("inside pick song")
 
     for child in tree.get_children():
         if tree.item(child)["values"][0] == added_song:
@@ -187,14 +185,13 @@ def pick_song(deck):
             break
 
     pick_id(item_data[2])
-    print("id after pick_id:", song_id)
     if deck == 1:
         print("deck ", deck)
         for child in tree.get_children():
             if tree.item(child)["values"][5] == song_id:
                 item_data = tree.item(child)["values"]
                 added_song = item_data[0]
-                print("adding song", song_id)
+                print("deck: 1, adding song", added_song)
                 added1()
     elif deck == 2:
         print("deck ", deck)
@@ -202,11 +199,9 @@ def pick_song(deck):
             if tree.item(child)["values"][5] == song_id:
                 item_data = tree.item(child)["values"]
                 added_song = item_data[0]
-                print("adding song", song_id)
+                print("deck: 2, adding song", added_song)
                 added2()
     
-
-
 # Function to perform the crossfade
 def crossfade_trans(mode):
     global is_transitioning, is_playing1, is_playing2, done
@@ -298,10 +293,9 @@ def update_time1():
         dur1.config(text=f"{curr_time}/{duration1}")
 
         if auto == True:
-            if curr_time >= (int(duration1)/12) and curr_time <= (int(duration1)/12) + 0.3 and not done:
-                print("trans 1->2")
+            if curr_time >= (int(duration1)/3) and curr_time <= (int(duration1)/3) + 0.3 and not done:
+                print("calling  trans")
                 done = TRUE
-                # if not auto:
                 pause_resume2()
                 trans(int(duration1)/24)
 
@@ -322,10 +316,9 @@ def update_time2():
         dur2.config(text=f"{curr_time}/{duration2}")
 
         if auto == True:
-            if curr_time >= (int(duration2)/12) and curr_time <= (int(duration2)/12) + 0.3 and not done:
-                print("trans 2->1")
+            if curr_time >= (int(duration2)/3) and curr_time <= (int(duration2)/3) + 0.3 and not done:
+                print("calling trans")
                 done = TRUE
-                # if not auto:
                 pause_resume1()
                 trans(int(duration1)/24)
 
@@ -665,6 +658,8 @@ def auto_play():
                 print(f"File Name: {added_song}")
     song_id = song_id + 1
 
+def init_songs():
+    automoto()
 
 def automoto():
     global auto
@@ -683,15 +678,15 @@ frame1 = ttk.LabelFrame(root, text="Track 1 Controls")
 frame1.grid(row=0, column=0, padx=10, pady=10, sticky="news")
 
 frame1_name = ttk.Label(frame1, text='')
-frame1_name.grid(row=0, column=0, padx=10, pady=10)
+frame1_name.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
 
 button1_pp = ttk.Button(frame1, text="Play", command=pause_resume1)
 button1_pp.grid(row=2, column=1, padx=5, pady=5)
 button_cue2 = ttk.Button(frame1, text="Cue", command=cue1)
 button_cue2.grid(row=2, column=2, padx=5, pady=5)
 
-load_btn1 = ttk.Button(frame1, text="Load Track 1", command=load_track1)
-load_btn1.grid(row=0, column=1, padx=10, pady=10)
+# load_btn1 = ttk.Button(frame1, text="Load Track 1", command=load_track1)
+# load_btn1.grid(row=0, column=1, padx=10, pady=10)
 
 add_btn1 = ttk.Button(frame1, text="Add Track 1", command=added1)
 add_btn1.grid(row=0, column=2, padx=10, pady=10)
@@ -713,15 +708,15 @@ frame2 = ttk.LabelFrame(root, text="Track 2 Controls")
 frame2.grid(row=0, column=2, padx=10, pady=10, sticky="news")
 
 frame2_name = ttk.Label(frame2, text='')
-frame2_name.grid(row=0, column=0, padx=10, pady=10)
+frame2_name.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
 
 button2_pp = ttk.Button(frame2, text="Play", command=pause_resume2)
 button2_pp.grid(row=2, column=1, padx=5, pady=5)
 button_cue2 = ttk.Button(frame2, text="Cue", command=cue2)
 button_cue2.grid(row=2, column=2, padx=5, pady=5)
 
-load_btn2 = ttk.Button(frame2, text="Load Track 2", command=load_track2)
-load_btn2.grid(row=0, column=1, padx=10, pady=10)
+# load_btn2 = ttk.Button(frame2, text="Load Track 2", command=load_track2)
+# load_btn2.grid(row=0, column=1, padx=10, pady=10)
 
 add_btn2 = ttk.Button(frame2, text="Add Track 2", command=added2)
 add_btn2.grid(row=0, column=2, padx=10, pady=10)
@@ -757,6 +752,7 @@ volume3.grid(row=3, column=2, padx=5, pady=5)
 
 # Stop All Tracks
 ttk.Button(frame3, text="Stop All Tracks", command=stop_all_tracks).grid(row=4, column=2, padx=10, pady=10)
+ttk.Button(frame3, text="init", command=init_songs).grid(row=4, column=3, padx=5, pady=5)
 ttk.Button(frame3, text="Small", command=lambda: trans(5.0)).grid(row=5, column=1, padx=5, pady=5)
 ttk.Button(frame3, text="Mid", command=lambda: trans(8.0)).grid(row=5, column=2, padx=5, pady=5)
 ttk.Button(frame3, text="Long", command=lambda: trans(12.0)).grid(row=5, column=3, padx=5, pady=5)
