@@ -10,6 +10,7 @@ import time
 import threading
 import gc
 import numpy as np
+from fuzzywuzzy import fuzz
 # from pydub import AudioSegment
 # from pydub.playback import play
 from tkinter import *
@@ -30,7 +31,7 @@ channel2 = pygame.mixer.Channel(1)
 is_transitioning = False
 songs_played = []
 is_playing1, is_playing2, started1, started2, auto, done, full_auto = False, False, False, False, False, False, False
-vol1, vol2, crossfade_position, start_time1, pause_time1, start_time2, pause_time2, duration1, duration2, song_id = 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0, 0, 1
+vol1, vol2, crossfade_position, start_time1, pause_time1, start_time2, pause_time2, duration1, duration2, song_id, key1, key2 = 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0, 0, 1, '', ''
 added_song = ''
 added_song_name = ''
 directory_path = ''
@@ -75,10 +76,10 @@ def load_track1():
 
 
 
-def added1():
+def added1(item_data=0):
     global track1, channel1, started1, is_playing1, start_time1, pause_time1, duration1
     
-    track1 = pygame.mixer.Sound("music/"+ pool + "/" + added_song)
+    track1 = pygame.mixer.Sound("../music-for-the-dj-project/music/"+ pool + "/" + added_song)
 
     if channel1 and is_playing1:
         channel1.stop()
@@ -97,20 +98,21 @@ def added1():
     volume3.set(volume3.get())
     frame1_name.config(text=added_song)
 
-
-    selected_item = tree.selection()
-    bpm_ar1 = tree.item(selected_item, 'values')
+    if item_data == 0:
+        selected_item = tree.selection()
+        item_data = tree.item(selected_item, 'values')
     # Assuming the file name is in the first column
-    bpm1 = bpm_ar1[2]  # Adjust the index if file name is in another column
+    bpm1 = item_data[2]  # Adjust the index if file name is in another column
+    key1 = item_data[4]
+    duration1 = item_data[1]
     bpm_label1.config(text=f"Bpm: {bpm1}")
-    duration1 = bpm_ar1[1]
+    key_label1.config(text=f"KEY: {key1}")
     dur1.config(text=f"-/{duration1}")
 
-def added2():
+def added2(item_data=0):
     global track2, channel2, started2, is_playing2, pause_time2, start_time2, duration2
-            
-    print("music/"+ pool + "/" + added_song)
-    track2 = pygame.mixer.Sound("music/"+ pool + "/" + added_song)
+
+    track2 = pygame.mixer.Sound("../music-for-the-dj-project/music/"+ pool + "/" + added_song)
     
     if channel2 and is_playing2:
         channel2.stop()
@@ -127,11 +129,14 @@ def added2():
     volume3.set(volume3.get())
     frame2_name.config(text=added_song)
 
-    selected_item = tree.selection()
-    bpm_ar2 = tree.item(selected_item, 'values')
-    bpm2 = bpm_ar2[2]  # Adjust the index if file name is in another column
-    duration2 = bpm_ar2[1]
+    if item_data == 0:
+        selected_item = tree.selection()
+        item_data = tree.item(selected_item, 'values')
+    bpm2 = item_data[2]  # Adjust the index if file name is in another column
+    duration2 = item_data[1]
+    key2 = item_data[4]
     bpm_label2.config(text=f"Bpm: {bpm2}")
+    key_label2.config(text=f"KEY: {key2}")
     dur2.config(text=f"-/{duration2}")
 
 def load_track2():
@@ -160,39 +165,71 @@ def trans(mode):
         t1 = threading.Thread(target=lambda: crossfade_trans(mode))
         t1.start()
 
-def pick_id(bpm_of_the_curr):
+def keywithmaxval(d):
+     """ a) create a list of the dict's keys and values; 
+         b) return the key with the max value"""  
+     v = list(d.values())
+     k = list(d.keys())
+     return k[v.index(max(v))]
+
+def pick_id(bpm_of_the_curr, key_of_the_curr, duration_of_the_curr):
     global song_id, songs_played
+    huristics = {}
 
     for child in tree.get_children():
         item_data = tree.item(child)["values"]
-        bpm_of_the_next = item_data[2]
+        bpm = item_data[2]
+        duration = item_data[1]
+        key = item_data[4]
         song_id = item_data[5]
-        
-        # if bpm_of_the_next == bpm_of_the_curr and song_id not in songs_played:
+        score = 0
+
         if song_id not in songs_played:
-            songs_played.append(song_id)
-            print("picked id: ", song_id)
-            print(songs_played)
-            return
+
+            if bpm == bpm_of_the_curr:
+                score = score + 7
+            if bpm in range((bpm_of_the_curr-2),(bpm_of_the_curr+2)):
+                score = score + 4
+            if bpm in range((bpm_of_the_curr-5),(bpm_of_the_curr+5)):
+                score = score + 2
+
+            # if key == key_of_the_curr:
+            #     score = score + 6
+            score = score + fuzz.ratio(key, key_of_the_curr)/10
+
+            if duration in range((duration_of_the_curr-10),(duration_of_the_curr+10)):
+                score = score + 3
+            if duration in range((duration_of_the_curr-15),(duration_of_the_curr+15)):
+                score = score + 2
+            if duration in range((duration_of_the_curr-25),(duration_of_the_curr+25)):
+                score = score + 1
+
+            huristics[song_id] = score
+
+    print(huristics)
+    song_id = keywithmaxval(huristics)
+    songs_played.append(song_id)
+    print(songs_played)
+    print(song_id)
 
 # loads songs automaticaly after trans
 def pick_song(deck):
     global song_id, added_song
 
     for child in tree.get_children():
-        if tree.item(child)["values"][0] == added_song:
+        if tree.item(child)["values"][0] == added_song:     #finds the song playing
             item_data = tree.item(child)["values"]
             break
 
-    pick_id(item_data[2])
+    pick_id(item_data[2], item_data[4], item_data[1])       #sends it to analise and changes song_id
     if deck == 1:
         print("deck ", deck)
         for child in tree.get_children():
-            if tree.item(child)["values"][5] == song_id:
+            if tree.item(child)["values"][5] == song_id:    #searches new song_id
                 item_data = tree.item(child)["values"]
                 added_song = item_data[0]
                 print("deck: 1, adding song", added_song)
-                added1()
+                added1(item_data)
     elif deck == 2:
         print("deck ", deck)
         for child in tree.get_children():
@@ -200,7 +237,7 @@ def pick_song(deck):
                 item_data = tree.item(child)["values"]
                 added_song = item_data[0]
                 print("deck: 2, adding song", added_song)
-                added2()
+                added2(item_data)
     
 # Function to perform the crossfade
 def crossfade_trans(mode):
@@ -293,7 +330,7 @@ def update_time1():
         dur1.config(text=f"{curr_time}/{duration1}")
 
         if auto == True:
-            if curr_time >= (int(duration1)/3) and curr_time <= (int(duration1)/3) + 0.3 and not done:
+            if curr_time >= (int(duration1)/12) and curr_time <= (int(duration1)/12) + 0.3 and not done:
                 print("calling  trans")
                 done = TRUE
                 pause_resume2()
@@ -316,7 +353,7 @@ def update_time2():
         dur2.config(text=f"{curr_time}/{duration2}")
 
         if auto == True:
-            if curr_time >= (int(duration2)/3) and curr_time <= (int(duration2)/3) + 0.3 and not done:
+            if curr_time >= (int(duration2)/12) and curr_time <= (int(duration2)/12) + 0.3 and not done:
                 print("calling trans")
                 done = TRUE
                 pause_resume1()
@@ -480,7 +517,7 @@ def load_dir(mode=0):
     if mode == 0:
         load_csv(2)
     elif mode == 1:
-        file_path = "C:/Users/manol/Desktop/the dj project/music/csvs/music.csv"
+        file_path = "C:/Users/manol/Documents/git/music-for-the-dj-project/music/csvs/music.csv"
     if not file_path:
         return
     # Clear existing data in the Treeview
@@ -510,10 +547,10 @@ def load_csv(mode=0):
     if mode == 0:
         file_path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
     elif mode == 1:
-        file_path = "C:/Users/manol/Desktop/the dj project/music/csvs/pool1.csv"
+        file_path = "C:/Users/manol/Documents/git/music-for-the-dj-project/music/csvs/pool1.csv"
         pool = "pool1"
     elif mode == 2:
-        file_path = "C:/Users/manol/Desktop/the dj project/music/csvs/" + pool + ".csv"
+        file_path = "C:/Users/manol/Documents/git/music-for-the-dj-project/music/csvs/" + pool + ".csv"
         
     if not file_path:
         return
@@ -693,6 +730,8 @@ add_btn1.grid(row=0, column=2, padx=10, pady=10)
 
 bpm_label1 = ttk.Label(frame1, text="BPM: Unknown")
 bpm_label1.grid(row=3, column=0, padx=10, pady=10)
+key_label1 = ttk.Label(frame1, text="KEY: Unknown")
+key_label1.grid(row=4, column=0, padx=10, pady=10)
 volume_label1 = ttk.Label(frame1, text="Volume: 100%")
 volume_label1.grid(row=3, column=1, padx=10, pady=10)
 dur1 = ttk.Label(frame1, text="-/-")
@@ -701,7 +740,7 @@ dur1.grid(row=3, column=2, padx=10, pady=10)
 # move_forward_btn1.grid(row=4, column=2, padx=10, pady=10)
 
 progress_bar1 = ttk.Scale(frame1, from_=0, to=100, orient="horizontal", length=300, style="TScale")
-progress_bar1.grid(row=4, column=0, columnspan=3, padx=10, pady=10)
+progress_bar1.grid(row=5, column=0, columnspan=3, padx=10, pady=10)
 
 # Track 2 Controls
 frame2 = ttk.LabelFrame(root, text="Track 2 Controls")
@@ -723,13 +762,15 @@ add_btn2.grid(row=0, column=2, padx=10, pady=10)
 
 bpm_label2 = ttk.Label(frame2, text="BPM: Unknown")
 bpm_label2.grid(row=3, column=0, padx=10, pady=10)
+key_label2 = ttk.Label(frame2, text="KEY: Unknown")
+key_label2.grid(row=4, column=0, padx=10, pady=10)
 volume_label2 = ttk.Label(frame2, text="Volume: 0%")
 volume_label2.grid(row=3, column=1, padx=10, pady=10)
 dur2 = ttk.Label(frame2, text="-/-")
 dur2.grid(row=3, column=2, padx=10, pady=10)
 
 progress_bar2 = ttk.Scale(frame2, from_=0, to=100, orient="horizontal", length=300, style="TScale")
-progress_bar2.grid(row=4, column=0, columnspan=3, padx=10, pady=10)
+progress_bar2.grid(row=5, column=0, columnspan=3, padx=10, pady=10)
 
 
 # Mixer
