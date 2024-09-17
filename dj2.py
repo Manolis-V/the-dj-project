@@ -3,21 +3,12 @@ import tkinter as tk
 import csv
 from tkinter import ttk, filedialog
 from pathlib import Path
-import librosa
-#import matplotlib.pyplot as plt
-#from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import time
 import threading
-import gc
 import numpy as np
 from fuzzywuzzy import fuzz
-# from pydub import AudioSegment
-# from pydub.playback import play
 from tkinter import *
-# from autoplay import *
 from csv_conv import *
-#from help_functions import *
-# from display_csv import *
 
 # Initialize Pygame mixer
 pygame.mixer.init()
@@ -32,26 +23,10 @@ is_transitioning = False
 songs_played = []
 is_playing1, is_playing2, started1, started2, auto, done, full_auto = False, False, False, False, False, False, False
 vol1, vol2, crossfade_position, start_time1, pause_time1, start_time2, pause_time2, duration1, duration2, song_id, key1, key2 = 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0, 0, 1, '', ''
-added_song = ''
-added_song_name = ''
-directory_path = ''
-pool = ''
-    
+added_song, added_song_name, directory_path, pool = '', '', '', ''
 
-def find_bpm(file_path):
-    # Load the entire audio file
-    y, sr = librosa.load(file_path, mono=True)  # Set duration=None to load the entire file
-    # Estimate tempo
-    tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
-    del y, sr, _
-    gc.collect() # Force garbage collection
-    return tempo
 
-# Function to calculate volume level for a chunk of audio data
-def calculate_volume(chunk):
-    rms = np.sqrt(np.mean(np.square(chunk)))
-    return rms
-
+# loads trackes using the folders
 def load_track1():
     global track1, channel1, started1, is_playing1
     file_path = filedialog.askopenfilename(filetypes=[("Audio Files", "*.mp3 *.wav")])
@@ -72,9 +47,6 @@ def load_track1():
         # Assuming the file name is in the first column
         bpm1 = bpm_ar1[2]  # Adjust the index if file name is in another column
         bpm_label1.config(text=f"Bpm: {bpm1}")
-
-
-
 
 def added1(item_data=0):
     global track1, channel1, started1, is_playing1, start_time1, pause_time1, duration1
@@ -139,6 +111,7 @@ def added2(item_data=0):
     key_label2.config(text=f"KEY: {key2}")
     dur2.config(text=f"-/{duration2}")
 
+# loads trackes using the folders
 def load_track2():
     global track2, channel2, started2, is_playing2
     file_path = filedialog.askopenfilename(filetypes=[("Audio Files", "*.mp3 *.wav")])
@@ -184,6 +157,7 @@ def pick_id(bpm_of_the_curr, key_of_the_curr, duration_of_the_curr):
         song_id = item_data[5]
         score = 0
 
+        """analises the songs that are not in the list of played songs"""
         if song_id not in songs_played:
 
             if bpm == bpm_of_the_curr:
@@ -193,8 +167,6 @@ def pick_id(bpm_of_the_curr, key_of_the_curr, duration_of_the_curr):
             if bpm in range((bpm_of_the_curr-5),(bpm_of_the_curr+5)):
                 score = score + 2
 
-            # if key == key_of_the_curr:
-            #     score = score + 6
             score = score + fuzz.ratio(key, key_of_the_curr)/10
 
             if duration in range((duration_of_the_curr-10),(duration_of_the_curr+10)):
@@ -206,11 +178,9 @@ def pick_id(bpm_of_the_curr, key_of_the_curr, duration_of_the_curr):
 
             huristics[song_id] = score
 
-    print(huristics)
     song_id = keywithmaxval(huristics)
     songs_played.append(song_id)
-    print(songs_played)
-    print(song_id)
+    print("The song with highest score: ", song_id)
 
 # loads songs automaticaly after trans
 def pick_song(deck):
@@ -228,7 +198,7 @@ def pick_song(deck):
             if tree.item(child)["values"][5] == song_id:    #searches new song_id
                 item_data = tree.item(child)["values"]
                 added_song = item_data[0]
-                print("deck: 1, adding song", added_song)
+                print("deck: 1, adding song: ", added_song)
                 added1(item_data)
     elif deck == 2:
         print("deck ", deck)
@@ -236,7 +206,7 @@ def pick_song(deck):
             if tree.item(child)["values"][5] == song_id:
                 item_data = tree.item(child)["values"]
                 added_song = item_data[0]
-                print("deck: 2, adding song", added_song)
+                print("deck: 2, adding song: ", added_song)
                 added2(item_data)
     
 # Function to perform the crossfade
@@ -264,8 +234,6 @@ def crossfade_trans(mode):
             time.sleep(step_duration)
             volume3.set(100-i)
             
-            
-
         # After crossfade, stop channel1 and let channel2 continue
         channel1.set_volume(0)
         channel2.set_volume(1)
@@ -292,8 +260,6 @@ def crossfade_trans(mode):
             time.sleep(step_duration)
             volume3.set(i)
 
-            
-
         # After crossfade, stop channel1 and let channel2 continue
         channel1.set_volume(1)
         channel2.set_volume(0)
@@ -308,18 +274,10 @@ def crossfade_trans(mode):
     if full_auto == True:
         auto_play()
 
-#| problem with .play(0.1)  1 == finished???
-def move_forward1():
-    global start_time1, channel1
-    print(1)
-    new_time = time.time() - start_time1
-    print("new_time, ", new_time)
-    channel1.stop()
-    print("stop")               
-    channel1 = track1.play(0, int(new_time))  # Restart from the new spot
-    print("started at ", int(new_time))
-
-
+"""
+    A lot is happening here, the main controls are taking place here
+    This function is running on a thread
+"""
 def update_time1():
     global channel1, track1, is_playing1, start_time1, pause_time1, done, duration1
     curr_time = time.time() - start_time1
@@ -343,6 +301,10 @@ def update_time1():
     if channel1.get_busy():
         root.after(250, update_time1)  # Update slider every 500 ms
 
+"""
+    A lot is happening here, the main controls are taking place here
+    This function is running on a thread
+"""
 def update_time2():
     global channel2, track2, is_playing2, start_time2, pause_time2, done, duration2
     curr_time = time.time() - start_time2
@@ -367,6 +329,9 @@ def update_time2():
         root.after(250, update_time2)  # Update slider every 500 ms
 
 
+"""
+    When calling this function it automaticaly pauses/playes, stops/continues time
+"""
 def pause_resume1():
     global is_playing1, started1, start_time1
     if is_playing1:
@@ -376,7 +341,6 @@ def pause_resume1():
         
         t2 = threading.Thread(target=update_time1)
         t2.start()
-        print(13)
 
     # when it was on cue or just loaded
     elif is_playing1 == False and started1 == False:
@@ -384,7 +348,6 @@ def pause_resume1():
         button1_pp.config(text="Pause")
         is_playing1 = True
         started1 = True
-        print(2)
         start_time1 = time.time() - pause_time1
         t2 = threading.Thread(target=update_time1)
         t2.start()
@@ -395,11 +358,13 @@ def pause_resume1():
         channel1.unpause()
         button1_pp.config(text="Pause")
         is_playing1 = True
-        print(1)
         start_time1 = time.time() - pause_time1
         t2 = threading.Thread(target=update_time1)
         t2.start()
 
+"""
+    When calling this function it automaticaly pauses/playes, stops/continues time
+"""
 def pause_resume2():
     global is_playing2, started2, start_time2
     if is_playing2:
@@ -510,7 +475,10 @@ def set_crossfade(val):
         
         volume_label1.config(text=f"Volume: {int(volume1 * 100)}%")
         volume_label2.config(text=f"Volume: {int(volume2 * 100)}%")
-# Function to load and display CSV in Treeview
+
+"""
+    loads the main csv with the directiories
+"""
 def load_dir(mode=0):
 
     file_path = ''
@@ -541,6 +509,12 @@ def load_dir(mode=0):
         for row in reader:
             tree1.insert("", tk.END, values=row)
 
+
+"""
+    mode == 0 : loads a directory from file explorer
+    mode == 1 : loads a hard coded directory
+    mode == 2 : loads the directory selected based on the pool variable
+"""
 def load_csv(mode=0):
     global pool
     # Ask the user to select a CSV file
