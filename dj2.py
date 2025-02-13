@@ -5,7 +5,6 @@ from tkinter import ttk, filedialog
 from pathlib import Path
 import time
 import threading
-import numpy as np
 from fuzzywuzzy import fuzz
 from tkinter import *
 from csv_conv import *
@@ -137,13 +136,6 @@ def trans(mode):
         # Run the crossfade in a separate thread
         t1 = threading.Thread(target=lambda: crossfade_trans(mode))
         t1.start()
-
-def keywithmaxval(d):
-     """ a) create a list of the dict's keys and values; 
-         b) return the key with the max value"""  
-     v = list(d.values())
-     k = list(d.keys())
-     return k[v.index(max(v))]
 
 def pick_id(bpm_of_the_curr, key_of_the_curr, duration_of_the_curr):
     global song_id, songs_played
