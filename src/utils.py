@@ -77,7 +77,7 @@ def load_dir(tree_pool, tree, mode=1, dir="pool1"):
     if mode == 0:
         load_csv(tree, 1, dir)
     elif mode == 1:
-        file_path = "C:/Users/manol/Documents/git/the-dj-project/music/csvs/music.csv"
+        file_path = "../music/csvs/music.csv"
     if not file_path:
         return
     # Clear existing data in the Treeview
@@ -106,8 +106,7 @@ def load_csv(tree, mode=1, pool="pool1"):
     if mode == 0:
         file_path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
     elif mode == 1:
-        file_path = "C:/Users/manol/Documents/git/the-dj-project/music/csvs/" + pool + ".csv"
-        # file_path = "C:/Users/manol/Documents/git/mymusiclib/examples/pool3.csv"
+        file_path = "../music/csvs/" + pool + ".csv"
     if not file_path:
         return
 
