@@ -33,7 +33,7 @@ class AudioPlayer:
             for child in self.tree.get_children():
                 if self.tree.item(child)["values"][0] == self.song_id1:
                     file_name = self.tree.item(child)["values"][1]
-        file_path = "music/" + pool_name + "/" + file_name + ".mp3"
+        file_path = "../music/" + pool_name + "/" + file_name + ".mp3"
         if self.file_path1:
             os.remove(self.file_path1)
         self.file_path1 = convert_to_wav(file_path)  # Convert before loading
@@ -80,7 +80,7 @@ class AudioPlayer:
             for child in self.tree.get_children():
                 if self.tree.item(child)["values"][0] == self.song_id2:
                     file_name = self.tree.item(child)["values"][1]
-        file_path = "music/" + pool_name + "/" + file_name + ".mp3"
+        file_path = "../music/" + pool_name + "/" + file_name + ".mp3"
         if self.file_path2:
             os.remove(self.file_path2)
         self.file_path2 = convert_to_wav(file_path)  # Convert before loading
